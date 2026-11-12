@@ -1,0 +1,626 @@
+/* =====================================================================
+   styles.css — Sorteador da 2cm
+   =====================================================================
+   COMO LER ESTE ARQUIVO
+   Uma regra CSS tem a forma:   seletor { propriedade: valor; }
+   - O SELETOR diz "em quais elementos aplicar" (.classe, #id, tag...).
+   - As PROPRIEDADES dizem "como esses elementos devem ficar".
+
+   Ordem do arquivo:
+     1. Variáveis de cor (tema escuro)
+     2. Reset e estrutura geral (html, body, main, títulos)
+     3. Painéis, formulários e botões
+     4. Lista de usuários cadastrados (tiles) e chips
+     5. Avatares (foto ou letra colorida)
+     6. Resultado do sorteio (cards das duplas, botões de colocação)
+        6.1 Animação do sorteio
+     7. Ranking (pontos)
+     8. Quadro de vitórias (painel em destaque)
+   ===================================================================== */
+
+
+/* ---------------------------------------------------------------------
+   1. VARIÁVEIS DE COR
+   ---------------------------------------------------------------------
+   Variáveis CSS (custom properties) começam com "--" e são usadas com
+   var(--nome). Vantagem: para mudar a cor do site inteiro, você troca
+   o valor aqui em cima uma vez só.
+
+   ":root" é o elemento raiz da página (o <html>), então as variáveis
+   definidas nele ficam disponíveis em qualquer lugar do CSS. */
+:root {
+  --bg: #15121f;          /* fundo da página (roxo bem escuro) */
+  --card: #201b30;        /* fundo dos painéis/cartões, um pouco mais claro */
+  --text: #f1eefb;        /* cor principal do texto */
+  --muted: #a39bb8;       /* texto secundário (dicas, legendas) */
+  --accent: #a78bfa;      /* cor de destaque (roxo claro): botões e seleção */
+  --accent-text: #1a1030; /* texto que fica SOBRE a cor de destaque */
+  --border: #33294d;      /* cor das bordas */
+  --danger: #ff6b86;      /* cor de erro (mensagens de aviso) */
+
+  box-sizing: border-box; /* ver explicação no reset (seção 2) */
+
+  /* env(safe-area-inset-...) é o espaço que o celular reserva para
+     "notch" e barras do sistema. O "0px" depois da vírgula é o valor
+     usado quando o aparelho não tem essa área (ex.: computador). */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Avisa o navegador que a página é escura, para ele pintar
+     scrollbars e campos nativos também no modo escuro. */
+  color-scheme: dark;
+}
+
+/* @media é uma "condição". Este bloco só vale se o aparelho do usuário
+   estiver configurado para o modo escuro. */
+@media (prefers-color-scheme: dark) {
+  /* ":not([data-theme="light"])" = "a não ser que o <html> tenha
+     data-theme="light"". Repete as mesmas cores para garantir o
+     tema escuro mesmo que o aparelho esteja no modo claro. */
+  :root:not([data-theme="light"]) {
+    --bg: #15121f;
+    --card: #201b30;
+    --text: #f1eefb;
+    --muted: #a39bb8;
+    --accent: #a78bfa;
+    --accent-text: #1a1030;
+    --border: #33294d;
+    --danger: #ff6b86;
+    color-scheme: dark;
+  }
+}
+
+/* Permite forçar o tema escuro escrevendo <html data-theme="dark">.
+   Os colchetes [ ] são um "seletor de atributo". */
+:root[data-theme="dark"] {
+  --bg: #15121f;
+  --card: #201b30;
+  --text: #f1eefb;
+  --muted: #a39bb8;
+  --accent: #a78bfa;
+  --accent-text: #1a1030;
+  --border: #33294d;
+  --danger: #ff6b86;
+  color-scheme: dark;
+}
+
+
+/* ---------------------------------------------------------------------
+   2. RESET E ESTRUTURA GERAL
+   --------------------------------------------------------------------- */
+
+/* Quando a página rola até um elemento, deixa uma folga no topo para
+   o conteúdo não ficar escondido atrás da barra do celular. */
+html {
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* "*" = todos os elementos. Com box-sizing: border-box, o padding e a
+   borda ficam DENTRO da largura definida. Sem isso, um elemento com
+   width: 100% e padding estouraria a tela. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;                 /* remove a margem padrão do navegador */
+  background: var(--bg);     /* usa a variável de cor definida acima */
+  color: var(--text);
+  /* Lista de fontes: o navegador usa a primeira que existir no aparelho
+     (system-ui = fonte padrão do sistema). A última, sans-serif, é o
+     plano B genérico. */
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.4;          /* altura da linha = 1,4x o tamanho da fonte */
+}
+
+/* O conteúdo todo fica dentro de <main>. */
+main {
+  max-width: 760px;          /* nunca passa de 760px de largura... */
+  margin: 0 auto;            /* ...e "auto" nas laterais centraliza na tela */
+  padding: 20px 16px 40px;   /* topo | laterais | baixo */
+}
+
+h1 {
+  font-size: 1.6rem;         /* rem = múltiplo do tamanho de fonte base */
+  margin: 0 0 4px;
+}
+
+.sub {
+  color: var(--muted);
+  margin: 0 0 20px;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin: 0 0 4px;
+}
+
+
+/* ---------------------------------------------------------------------
+   3. PAINÉIS, FORMULÁRIOS E BOTÕES
+   --------------------------------------------------------------------- */
+
+/* "Painel" = o cartão arredondado que agrupa cada seção da página. */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;       /* cantos arredondados */
+  padding: 16px;             /* espaço interno */
+  margin-bottom: 20px;       /* espaço entre um painel e o próximo */
+}
+
+/* FLEXBOX: display: flex coloca os filhos lado a lado numa linha. */
+.row {
+  display: flex;
+  gap: 8px;                  /* espaço entre os itens */
+  flex-wrap: wrap;           /* se não couber, quebra para a linha de baixo */
+  align-items: center;       /* alinha os itens verticalmente ao centro */
+}
+
+input[type=text] {
+  /* flex: 1 1 180px = pode crescer (1), pode encolher (1) e começa
+     com 180px. Assim o campo ocupa o espaço que sobrar na linha. */
+  flex: 1 1 180px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+}
+
+/* O <input type="file"> padrão é feio. Aqui ele é escondido e o
+   <label class="btn"> faz o papel de botão no lugar dele. */
+input[type=file] {
+  display: none;
+}
+
+/* Estilo base de todo botão. */
+.btn {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: .95rem;
+  cursor: pointer;           /* mãozinha ao passar o mouse */
+}
+
+/* ".btn.primary" (sem espaço) = elemento que tem AS DUAS classes.
+   É a variação de destaque do botão. */
+.btn.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+/* ":disabled" é uma pseudo-classe: só vale quando o botão está
+   desativado (atributo disabled, controlado pelo JavaScript). */
+.btn:disabled {
+  opacity: .45;              /* deixa o botão "apagado" */
+  cursor: not-allowed;
+}
+
+/* Mensagem de erro do formulário. min-height reserva espaço mesmo
+   quando está vazia, para a página não "pular" quando o erro aparece. */
+.msg {
+  min-height: 1.2em;
+  margin: 8px 0 0;
+  color: var(--danger);
+  font-size: .9rem;
+}
+
+/* Textos de ajuda em cinza. */
+.hint {
+  color: var(--muted);
+  font-size: .85rem;
+  margin: 6px 0 0;
+}
+
+/* Linha com os botões de ação de cada painel. */
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+
+/* ---------------------------------------------------------------------
+   4. LISTA DE CADASTRADOS (TILES) E CHIPS
+   ---------------------------------------------------------------------
+   O JavaScript cria <li class="tile"> para cada usuário fixo.
+   Quando o usuário está selecionado, ganha também a classe "sel".
+   O CSS só precisa reagir a essa classe: o JS liga/desliga a classe
+   e o CSS cuida da aparência.
+
+   "#cadastrados li.tile" = <li class="tile"> que está DENTRO do
+   elemento com id="cadastrados" (o espaço entre eles significa
+   "dentro de"). */
+
+/* GRID: display: grid organiza os filhos em linhas e colunas. */
+#cadastrados {
+  display: grid;
+  /* repeat(auto-fill, minmax(200px, 1fr)) = "crie quantas colunas
+     couberem, cada uma com no mínimo 200px e dividindo o espaço
+     restante igualmente". No celular vira 1-2 colunas; no PC, mais. */
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 18px;
+}
+
+#cadastrados li.tile {
+  display: flex;
+  flex-direction: column;    /* itens um embaixo do outro (foto, depois nome) */
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  opacity: .55;              /* NÃO selecionado = meio apagado */
+  padding: 6px 6px 10px;
+  border: 2px solid transparent; /* borda invisível, reserva o espaço */
+  border-radius: 18px;
+  background: var(--bg);
+  font-weight: 600;
+  font-size: 1.15rem;
+  text-align: center;
+  overflow-wrap: anywhere;   /* nomes longos quebram em vez de estourar */
+}
+
+/* Selecionado = opacidade total + borda colorida + "anel" ao redor.
+   box-shadow: 0 0 0 2px cor  -> sombra sem deslocamento nem desfoque,
+   com 2px de espessura, que na prática funciona como uma 2ª borda. */
+#cadastrados li.tile.sel {
+  opacity: 1;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* Dentro do tile, o avatar ocupa toda a largura e fica quadrado. */
+#cadastrados li.tile .avatar {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;       /* proporção 1:1 = quadrado, qualquer largura */
+  border-radius: 13px;
+  font-size: 2.4rem;         /* tamanho da letra quando não há foto */
+}
+
+/* Remove os marcadores (bolinhas) padrão das listas e organiza os
+   itens em linha, quebrando para a próxima quando não cabem. */
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Chip = item de lista em formato de pílula (usado na lista dos
+   participantes escolhidos, com avatar, nome e botão ×). */
+li.chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.05rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;      /* valor enorme = bordas totalmente redondas */
+  padding: 4px 8px 4px 4px;
+}
+
+/* Botão "×" de remover: sem borda e sem fundo, só o símbolo. */
+li.chip button {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+
+/* ---------------------------------------------------------------------
+   5. AVATARES
+   ---------------------------------------------------------------------
+   O avatar pode ser uma <img> (foto) ou uma <div> com a inicial do
+   nome sobre uma cor. As duas versões usam a mesma classe. */
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;        /* 50% transforma o quadrado em círculo */
+  object-fit: cover;         /* a foto preenche o espaço, cortando as sobras
+                                em vez de achatar/esticar */
+  /* Centraliza a letra (caso sem foto) na horizontal e na vertical. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  flex: none;                /* nunca encolher dentro de um container flex */
+}
+
+/* Variação pequena ("sm"): usada nos chips e no ranking. */
+.avatar.sm {
+  width: 56px;
+  height: 56px;
+  font-size: 1.2rem;
+}
+
+
+/* ---------------------------------------------------------------------
+   6. RESULTADO DO SORTEIO
+   ---------------------------------------------------------------------
+   Cada dupla sorteada vira um cartão (.dupla) com duas fotos grandes
+   (.membro) e um botão para registrar a vitória. */
+
+/* Os cartões ficam empilhados e centralizados. */
+#resultado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.dupla {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 18px;
+  text-align: center;
+  max-width: 100%;
+}
+
+/* Título "DUPLA 1": pequeno, cinza, em maiúsculas e espaçado. */
+.dupla h3 {
+  margin: 0 0 14px;
+  font-size: .85rem;
+  color: var(--muted);
+  text-transform: uppercase; /* transforma o texto em MAIÚSCULAS só visualmente */
+  letter-spacing: .05em;     /* espaço extra entre as letras */
+}
+
+/* As duas fotos lado a lado; em telas estreitas uma vai para baixo da outra. */
+.fotos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.membro {
+  width: 300px;
+  max-width: 100%;           /* em telas menores que 300px, encolhe junto */
+}
+
+.membro .avatar {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  border-radius: 18px;
+  font-size: 5rem;
+}
+
+.membro .nome {
+  margin-top: 10px;
+  font-weight: 700;
+  font-size: 1.2rem;
+  overflow-wrap: anywhere;
+}
+
+/* Dupla em 1º lugar: o JS adiciona a classe "venceu" ao cartão e o
+   CSS acende uma borda e um anel na cor de destaque. */
+.dupla.venceu {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent);
+}
+
+/* BOTÕES DE COLOCAÇÃO (1º, 2º, 3º, 4º) de cada dupla.
+   Ficam lado a lado e dividem a largura igualmente: "flex: 1 1 0"
+   faz todos crescerem por igual. Cada botão tem o rótulo (🥇 1º) e,
+   embaixo, uma legenda pequena com os pontos (<small>). */
+.lugares {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.lugar {
+  flex: 1 1 0;
+  padding: 8px 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: .95rem;
+  font-weight: 700;
+  line-height: 1.15;
+  cursor: pointer;
+}
+
+.lugar small {
+  display: block;             /* a legenda fica numa linha própria */
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* "ocupado" = esse lugar já pertence a outra dupla (clicar rouba o lugar). */
+.lugar.ocupado {
+  opacity: .6;
+}
+
+/* "sel" = a colocação escolhida para esta dupla: botão preenchido. */
+.lugar.sel {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.lugar.sel small {
+  color: var(--accent-text);
+}
+
+/* Depois de registrar o resultado, os botões ficam desativados
+   (apagados), mas o escolhido continua com cor total. A regra de
+   baixo é mais específica (3 seletores) e por isso vence a de cima. */
+.lugar:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.lugar.sel:disabled {
+  opacity: 1;
+}
+
+/* Bloco abaixo das duplas: botão "Registrar resultado" + dicas. */
+.registro {
+  text-align: center;
+  max-width: 100%;
+}
+
+.registro .btn {
+  min-width: 260px;
+  max-width: 100%;
+}
+
+.registro .hint {
+  margin-top: 8px;
+}
+
+
+/* ---------------------------------------------------------------------
+   6.1 ANIMAÇÃO DO SORTEIO
+   ---------------------------------------------------------------------
+   @keyframes define os "quadros" de uma animação: de onde ela parte
+   (from) e para onde vai (to). Depois usamos a propriedade "animation"
+   para aplicar essa animação a um elemento. */
+
+/* A "roleta": cartão com duas fotos trocando rápido durante o sorteio.
+   Versão menor das fotos (140px) para caber melhor na tela. */
+.roleta .membro {
+  width: 140px;
+}
+
+.roleta .membro .avatar {
+  font-size: 2.6rem;
+}
+
+/* O cartão da roleta "pulsa": o anel de destaque aparece e some.
+   "infinite alternate" repete para sempre, indo e voltando. */
+.roleta {
+  animation: pulsar .8s ease-in-out infinite alternate;
+}
+
+@keyframes pulsar {
+  from { box-shadow: 0 0 0 0 transparent; }
+  to   { box-shadow: 0 0 0 4px var(--accent); }
+}
+
+/* Entrada dos cartões das duplas: começam invisíveis, um pouco
+   abaixo e menores, e "saltam" para o lugar.
+   - var(--atraso, 0s): o JS define --atraso em cada cartão (0s, 0,35s,
+     0,7s...), então eles aparecem um depois do outro.
+   - "both" faz o cartão ficar invisível durante o atraso e
+     manter o estado final depois de terminar. */
+@keyframes pop {
+  from { opacity: 0; transform: translateY(14px) scale(.9); }
+  to   { opacity: 1; transform: none; }
+}
+
+.revelar {
+  animation: pop .5s cubic-bezier(.2, .9, .3, 1.2) both;
+  animation-delay: var(--atraso, 0s);
+}
+
+/* Acessibilidade: quem configurou o aparelho para reduzir movimento
+   não vê as animações. */
+@media (prefers-reduced-motion: reduce) {
+  .roleta, .revelar {
+    animation: none;
+  }
+}
+
+
+/* ---------------------------------------------------------------------
+   7. RANKING
+   ---------------------------------------------------------------------
+   Cada linha (.rk) tem 4 colunas:
+   posição | avatar | nome + estatísticas | número de vitórias */
+
+.rk {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);  /* linha separadora entre jogadores */
+}
+
+/* ":first-child" = só o primeiro filho. A primeira linha não precisa
+   de separador em cima. */
+.rk:first-child {
+  border-top: 0;
+}
+
+.rk .pos {
+  width: 36px;               /* largura fixa para as posições alinharem */
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  flex: none;
+}
+
+/* O bloco do nome ocupa todo o espaço que sobrar na linha (flex: 1).
+   min-width: 0 permite que ele encolha e que nomes longos quebrem,
+   em vez de empurrar o resto da linha para fora da tela. */
+.rk .info {
+  flex: 1;
+  min-width: 0;
+}
+
+.rk .nm {
+  font-weight: 700;
+  font-size: 1.1rem;
+  overflow-wrap: anywhere;
+}
+
+.rk .st {
+  color: var(--muted);
+  font-size: .85rem;
+}
+
+/* Número grande de vitórias, na cor de destaque. */
+.rk .vit {
+  font-weight: 800;
+  font-size: 1.6rem;
+  color: var(--accent);
+  flex: none;
+  text-align: center;
+  line-height: 1;
+}
+
+/* A palavra "vitórias" fica pequena embaixo do número.
+   display: block faz o <small> ocupar a própria linha. */
+.rk .vit small {
+  display: block;
+  font-size: .65rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+
+/* ---------------------------------------------------------------------
+   8. QUADRO DE VITÓRIAS (PAINEL EM DESTAQUE)
+   ---------------------------------------------------------------------
+   Usa as mesmas linhas do ranking (.rk), mas o painel ganha borda e
+   anel na cor de destaque para chamar atenção. ".panel.destaque" (sem
+   espaço) = elemento que tem as DUAS classes. */
+.panel.destaque {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+  background: var(--card);    /* plano B para navegadores sem color-mix */
+  /* color-mix mistura duas cores: aqui, 12% da cor de destaque com
+     88% da cor do cartão, dando um fundo levemente arroxeado. */
+  background: color-mix(in srgb, var(--accent) 12%, var(--card));
+}
